@@ -53,6 +53,32 @@ Then open:
 http://localhost:8501
 ```
 
+## Deploy Free
+
+The easiest free deployment for this app is Streamlit Community Cloud.
+
+### Files Needed
+
+- `streamlit_app.py`
+- `requirements.txt`
+- `research_agent/`
+- `README.md`
+
+### Deploy Steps
+
+1. Push this repository to GitHub.
+2. Sign in to Streamlit Community Cloud.
+3. Create a new app from the GitHub repo.
+4. Set the app entry point to `streamlit_app.py`.
+5. Deploy.
+
+### Cloud Notes
+
+- Leave `Use Ollama local model` off in the cloud.
+- Leave `Parse allowed PDFs/web pages` off unless you expect slower runs.
+- Uploaded PDFs still work because parsing happens locally inside the app runtime.
+- The app uses public endpoints only and does not require OpenAI, Groq, or OpenRouter keys.
+
 ## Recommended Settings
 
 - Keep `Use Ollama local model` unchecked unless you want heavier local model summaries.
