@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from html import escape
 from io import BytesIO
 from pathlib import Path
@@ -87,18 +86,31 @@ def inject_css() -> None:
             width: 38px;
             height: 38px;
             border-radius: 14px;
-            overflow: hidden;
+            position: relative;
             box-shadow: 0 16px 30px rgba(79, 92, 245, .22);
             flex: none;
             background: linear-gradient(135deg, var(--zero-primary), var(--zero-primary-2));
-            display: grid;
-            place-items: center;
+            display: block;
         }
 
-        .zero-mark img {
-            width: 38px;
-            height: 38px;
-            display: block;
+        .zero-mark-ring {
+            position: absolute;
+            inset: 8px;
+            border: 4px solid #ffffff;
+            border-radius: 999px;
+            box-sizing: border-box;
+        }
+
+        .zero-mark-slash {
+            position: absolute;
+            left: 10px;
+            top: 8px;
+            width: 22px;
+            height: 4px;
+            background: #ffffff;
+            border-radius: 999px;
+            transform: rotate(52deg);
+            transform-origin: center;
         }
 
         .zero-title {
@@ -393,21 +405,7 @@ def inject_css() -> None:
 
 
 def zero_logo_svg() -> str:
-    svg = """
-    <svg viewBox="0 0 48 48" width="38" height="38" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="zeroMarkGrad" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stop-color="#4f5cf5"/>
-          <stop offset="1" stop-color="#7a4bf4"/>
-        </linearGradient>
-      </defs>
-      <rect x="2" y="2" width="44" height="44" rx="14" fill="url(#zeroMarkGrad)"/>
-      <circle cx="24" cy="24" r="11.5" fill="none" stroke="#ffffff" stroke-width="5"/>
-      <path d="M16.5 15.5 31.5 32.5" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
-    </svg>
-    """.strip()
-    encoded = base64.b64encode(svg.encode("utf-8")).decode("ascii")
-    return f'<img src="data:image/svg+xml;base64,{encoded}" alt="Zero logo">'
+    return '<span class="zero-mark-ring"></span><span class="zero-mark-slash"></span>'
 
 
 def parse_uploaded_pdfs(uploaded_files) -> tuple[list[ResearchSource], list[str]]:
@@ -512,7 +510,7 @@ def render_recent_reports(reports) -> None:
                 <div class="zero-report-head">
                     <div>
                         <div class="zero-report-title">{escape(report.query)}</div>
-                        <div class="zero-report-meta">{escape(format_created_at(report.created_at))} · {report.source_count} sources · {report.warning_count} warnings</div>
+                        <div class="zero-report-meta">{escape(format_created_at(report.created_at))} | {report.source_count} sources | {report.warning_count} warnings</div>
                     </div>
                     <div class="zero-report-chip">Saved</div>
                 </div>
@@ -540,7 +538,7 @@ def render_selected_report(report) -> None:
         f"""
         <div class="zero-report-viewer">
             <div class="zero-report-title">{escape(report.query)}</div>
-            <div class="zero-report-meta">{escape(format_created_at(report.created_at))} · {report.source_count} sources · {report.warning_count} warnings</div>
+            <div class="zero-report-meta">{escape(format_created_at(report.created_at))} | {report.source_count} sources | {report.warning_count} warnings</div>
         </div>
         """,
         unsafe_allow_html=True,
