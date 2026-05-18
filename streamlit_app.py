@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from html import escape
 from io import BytesIO
 from pathlib import Path
@@ -87,6 +88,15 @@ def inject_css() -> None:
             overflow: hidden;
             box-shadow: 0 16px 30px rgba(79, 92, 245, .22);
             flex: none;
+            background: linear-gradient(135deg, var(--zero-primary), var(--zero-primary-2));
+            display: grid;
+            place-items: center;
+        }
+
+        .zero-mark img {
+            width: 38px;
+            height: 38px;
+            display: block;
         }
 
         .zero-title {
@@ -258,14 +268,37 @@ def inject_css() -> None:
             border-color: var(--zero-line) !important;
         }
 
-        [data-baseweb="tag"] {
-            background: var(--zero-primary-soft) !important;
+        [data-testid="stSidebar"] [data-baseweb="select"] {
+            background: var(--zero-surface) !important;
+            border: 1px solid var(--zero-line) !important;
+            border-radius: 14px !important;
+            min-height: 46px !important;
+        }
+
+        [data-testid="stSidebar"] [data-baseweb="select"] input {
             color: var(--zero-ink) !important;
+        }
+
+        [data-testid="stSidebar"] [data-baseweb="select"] input::placeholder {
+            color: #8893ab !important;
+        }
+
+        [data-testid="stSidebar"] [data-baseweb="select"] svg {
+            fill: var(--zero-muted) !important;
+        }
+
+        [data-baseweb="tag"] {
+            background: var(--zero-primary) !important;
+            color: #ffffff !important;
             border-radius: 999px !important;
         }
 
         [data-baseweb="tag"] span {
-            color: var(--zero-ink) !important;
+            color: #ffffff !important;
+        }
+
+        [data-baseweb="tag"] button {
+            color: #ffffff !important;
         }
 
         @media (max-width: 900px) {
@@ -304,7 +337,7 @@ def inject_css() -> None:
 
 
 def zero_logo_svg() -> str:
-    return """
+    svg = """
     <svg viewBox="0 0 48 48" width="38" height="38" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="zeroMarkGrad" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse">
@@ -316,7 +349,9 @@ def zero_logo_svg() -> str:
       <circle cx="24" cy="24" r="11.5" fill="none" stroke="#ffffff" stroke-width="5"/>
       <path d="M16.5 15.5 31.5 32.5" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
     </svg>
-    """
+    """.strip()
+    encoded = base64.b64encode(svg.encode("utf-8")).decode("ascii")
+    return f'<img src="data:image/svg+xml;base64,{encoded}" alt="Zero logo">'
 
 
 def parse_uploaded_pdfs(uploaded_files) -> tuple[list[ResearchSource], list[str]]:
