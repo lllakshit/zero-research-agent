@@ -13,11 +13,13 @@ from pypdf.errors import PdfReadError
 from research_agent.models import ResearchSource
 from research_agent.pipeline import run_research
 from research_agent.planner import DEFAULT_SOURCES
+from research_agent.storage import bootstrap_reports_from_outputs, get_report, list_reports
 from research_agent.utils import clean_text
 
 
 ROOT_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = ROOT_DIR / "outputs"
+DB_PATH = OUTPUT_DIR / "reports.sqlite3"
 MAX_UPLOADED_PDF_BYTES = 50 * 1024 * 1024
 MAX_UPLOADED_TEXT_CHARS = 60000
 
@@ -207,6 +209,60 @@ def inject_css() -> None:
             background: var(--zero-surface);
             font-weight: 760;
             color: var(--zero-ink);
+        }
+
+        .zero-report-card {
+            border: 1px solid var(--zero-line);
+            border-radius: 16px;
+            background: var(--zero-surface);
+            padding: .9rem;
+            margin-top: .75rem;
+        }
+
+        .zero-report-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: .8rem;
+        }
+
+        .zero-report-title {
+            color: var(--zero-ink);
+            font-weight: 820;
+            font-size: .95rem;
+            line-height: 1.35;
+        }
+
+        .zero-report-meta {
+            color: var(--zero-muted);
+            font-size: .8rem;
+            margin-top: .3rem;
+            line-height: 1.45;
+        }
+
+        .zero-report-chip {
+            color: var(--zero-primary);
+            background: var(--zero-accent);
+            border: 1px solid rgba(79, 92, 245, .18);
+            border-radius: 999px;
+            padding: .2rem .55rem;
+            font-size: .72rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .zero-report-actions {
+            display: grid;
+            gap: .55rem;
+            margin-top: .75rem;
+        }
+
+        .zero-report-viewer {
+            border: 1px solid var(--zero-line);
+            border-radius: 18px;
+            background: #fff;
+            padding: 1rem 1.1rem;
+            box-shadow: 0 16px 36px rgba(24, 36, 78, .06);
         }
 
         .stButton > button {
@@ -440,17 +496,64 @@ def sidebar_controls():
     return selected_sources, max_results, parse_documents, use_local_llm, ollama_model
 
 
-def recent_reports() -> None:
-    reports = sorted(OUTPUT_DIR.glob("*.md"), key=lambda path: path.stat().st_mtime, reverse=True)[:4]
+def format_created_at(value: str) -> str:
+    return value.replace("T", " ").replace("+00:00", " UTC")
+
+
+def render_recent_reports(reports) -> None:
     if not reports:
         st.caption("No reports generated yet.")
         return
 
     for report in reports:
-        st.markdown(f"- `{escape(report.name)}`")
+        st.markdown(
+            f"""
+            <div class="zero-report-card">
+                <div class="zero-report-head">
+                    <div>
+                        <div class="zero-report-title">{escape(report.query)}</div>
+                        <div class="zero-report-meta">{escape(format_created_at(report.created_at))} · {report.source_count} sources · {report.warning_count} warnings</div>
+                    </div>
+                    <div class="zero-report-chip">Saved</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        cols = st.columns(5)
+        if cols[0].button("View", key=f"view-{report.report_id}", use_container_width=True):
+            st.session_state.active_report_id = report.report_id
+            st.rerun()
+        cols[1].download_button("MD", report.markdown_content, file_name=f"{report.report_id}.md", key=f"md-{report.report_id}", use_container_width=True)
+        cols[2].download_button("HTML", report.html_content, file_name=f"{report.report_id}.html", key=f"html-{report.report_id}", use_container_width=True)
+        cols[3].download_button("PDF", report.pdf_bytes, file_name=f"{report.report_id}.pdf", key=f"pdf-{report.report_id}", use_container_width=True)
+        cols[4].download_button("JSON", report.raw_json_content, file_name=f"{report.report_id}-raw.json", key=f"json-{report.report_id}", use_container_width=True)
+
+
+def render_selected_report(report) -> None:
+    if report is None:
+        st.caption("Click View on a report to open it here.")
+        return
+
+    st.markdown(
+        f"""
+        <div class="zero-report-viewer">
+            <div class="zero-report-title">{escape(report.query)}</div>
+            <div class="zero-report-meta">{escape(format_created_at(report.created_at))} · {report.source_count} sources · {report.warning_count} warnings</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(report.markdown_content)
 
 
 inject_css()
+bootstrap_reports_from_outputs(OUTPUT_DIR, DB_PATH)
+if "recent_reports_cache" not in st.session_state or not st.session_state.recent_reports_cache:
+    st.session_state.recent_reports_cache = list_reports(DB_PATH, limit=6)
+if "active_report_id" not in st.session_state:
+    st.session_state.active_report_id = st.session_state.recent_reports_cache[0].report_id if st.session_state.recent_reports_cache else ""
 selected_sources, max_results, parse_documents, use_local_llm, ollama_model = sidebar_controls()
 
 st.markdown(
@@ -518,9 +621,7 @@ with side_col:
             """
         )
 
-    with st.container(border=True):
-        st.subheader("Recent reports")
-        recent_reports()
+    recent_reports_box = st.container(border=True)
 
 if run_clicked:
     with st.status("Running research agent...", expanded=True) as status:
@@ -549,6 +650,11 @@ if run_clicked:
                 use_local_llm=use_local_llm,
                 ollama_model=ollama_model,
             )
+            st.session_state.active_report_id = result.report_id
+            latest_report = get_report(DB_PATH, result.report_id)
+            if latest_report is not None:
+                cached = [report for report in st.session_state.recent_reports_cache if report.report_id != latest_report.report_id]
+                st.session_state.recent_reports_cache = [latest_report, *cached][:6]
         except (RuntimeError, ValueError, OSError, requests.RequestException, PdfReadError) as exc:
             status.update(label="Research failed", state="error")
             st.error(str(exc))
@@ -570,5 +676,10 @@ if run_clicked:
     col3.download_button("PDF", result.pdf_path.read_bytes(), file_name=result.pdf_path.name, use_container_width=True)
     col4.download_button("Raw JSON", result.raw_json_path.read_bytes(), file_name=result.raw_json_path.name, use_container_width=True)
 
-    st.subheader("Preview")
-    st.markdown(result.markdown_path.read_text(encoding="utf-8"))
+with recent_reports_box:
+    st.subheader("Recent reports")
+    render_recent_reports(st.session_state.recent_reports_cache)
+
+st.subheader("View report")
+active_report = get_report(DB_PATH, st.session_state.active_report_id) if st.session_state.active_report_id else None
+render_selected_report(active_report)

@@ -6,5 +6,7 @@ outputs/*.json
 outputs/*.md
 outputs/*.html
 outputs/*.pdf
+outputs/*.sqlite3
+outputs/*.db
 streamlit*.log
 !outputs/.gitkeep

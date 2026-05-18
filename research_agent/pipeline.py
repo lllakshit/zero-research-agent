@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
@@ -12,6 +13,7 @@ from research_agent.models import ResearchSource
 from research_agent.parser import extract_source_text
 from research_agent.planner import create_plan
 from research_agent.reviewer import review_sources
+from research_agent.storage import StoredReport, save_report
 from research_agent.summarizer import summarize_sources
 from research_agent.utils import safe_filename, timestamp_slug, write_json
 from research_agent.writer import write_html_report, write_markdown_report, write_pdf_report
@@ -19,7 +21,9 @@ from research_agent.writer import write_html_report, write_markdown_report, writ
 
 @dataclass(slots=True)
 class PipelineResult:
+    report_id: str
     query: str
+    created_at: str
     sources: list[ResearchSource]
     warnings: list[str]
     raw_json_path: Path
@@ -102,8 +106,31 @@ def run_research(
     write_html_report(query, summarized, warnings, html_path)
     write_pdf_report(query, summarized, warnings, pdf_path)
 
+    created_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    raw_json_content = raw_json_path.read_text(encoding="utf-8")
+    save_report(
+        output_dir / "reports.sqlite3",
+        StoredReport(
+            report_id=slug,
+            query=query,
+            created_at=created_at,
+            source_count=len(summarized),
+            warning_count=len(warnings),
+            markdown_path=str(markdown_path),
+            html_path=str(html_path),
+            pdf_path=str(pdf_path),
+            raw_json_path=str(raw_json_path),
+            markdown_content=markdown_path.read_text(encoding="utf-8"),
+            html_content=html_path.read_text(encoding="utf-8"),
+            pdf_bytes=pdf_path.read_bytes(),
+            raw_json_content=raw_json_content,
+        ),
+    )
+
     return PipelineResult(
+        report_id=slug,
         query=query,
+        created_at=created_at,
         sources=summarized,
         warnings=warnings,
         raw_json_path=raw_json_path,

@@ -1,6 +1,7 @@
 # Zero-Key Research Agent
 
 A local research agent that uses public academic sources and creates Markdown, HTML, PDF, and raw JSON outputs without paid LLM/API keys.
+It also stores recent reports in a local SQLite database so they stay visible across reruns and can be viewed or downloaded later from the UI.
 
 ## What It Does
 
