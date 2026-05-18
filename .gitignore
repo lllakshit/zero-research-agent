@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.streamlit/
+outputs/*.json
+outputs/*.md
+outputs/*.html
+outputs/*.pdf
+streamlit*.log
+!outputs/.gitkeep
