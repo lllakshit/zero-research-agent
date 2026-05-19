@@ -48,6 +48,7 @@ def inject_css() -> None:
                 radial-gradient(circle at 25% 0%, rgba(79, 92, 245, .10), transparent 34rem),
                 linear-gradient(180deg, #ffffff 0%, var(--zero-bg) 100%);
             color: var(--zero-ink);
+            color-scheme: light;
         }
 
         [data-testid="stHeader"] {
@@ -298,6 +299,42 @@ def inject_css() -> None:
             transform: translateY(0);
         }
 
+        [data-testid="stDownloadButton"] button {
+            min-height: 46px;
+            border-radius: 12px !important;
+            font-weight: 800 !important;
+            color: var(--zero-ink) !important;
+            background: var(--zero-surface) !important;
+            border: 1px solid var(--zero-line) !important;
+            box-shadow: none !important;
+            transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+        }
+
+        [data-testid="stDownloadButton"] button,
+        [data-testid="stDownloadButton"] button * {
+            color: var(--zero-ink) !important;
+        }
+
+        [data-testid="stDownloadButton"] button svg {
+            fill: var(--zero-primary) !important;
+        }
+
+        [data-testid="stDownloadButton"] button:hover {
+            background: #ffffff !important;
+            border-color: rgba(79, 92, 245, .34) !important;
+            box-shadow: 0 10px 18px rgba(24, 36, 78, .08) !important;
+            transform: translateY(-1px);
+        }
+
+        [data-testid="stDownloadButton"] button:active {
+            transform: translateY(0);
+        }
+
+        [data-testid="stDownloadButton"] button:focus-visible {
+            outline: 2px solid rgba(79, 92, 245, .3);
+            outline-offset: 2px;
+        }
+
         .stTextArea textarea {
             border-radius: 14px;
             border: 1px solid var(--zero-line) !important;
@@ -396,6 +433,17 @@ def inject_css() -> None:
         @media (max-width: 520px) {
             .zero-steps {
                 grid-template-columns: 1fr;
+            }
+
+            [data-testid="stDownloadButton"] button {
+                min-height: 42px;
+                font-size: .8rem;
+                padding: .5rem .65rem;
+            }
+
+            .stButton > button {
+                min-height: 44px;
+                font-size: .95rem;
             }
         }
         </style>
